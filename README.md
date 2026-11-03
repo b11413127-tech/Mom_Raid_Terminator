@@ -142,11 +142,9 @@ GPIO EXTI (按鈕中斷), TIM (PWM 綠燈、1ms 計時計時), LPUART (電腦通
 
 \## 8. 實作照片
 
-<img src="../image/1.png" width="400">
+!\[圖片1](image/1.png)
 
-<img src="../image/2.png" width="400">
+!\[圖片2](image/2.png)
 
-<img src="../image/3.png" width="400">
-
-
+!\[圖片3](image/3.png)
 
