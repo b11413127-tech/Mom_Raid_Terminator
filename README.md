@@ -114,17 +114,41 @@ GPIO EXTI (按鈕中斷), TIM (PWM 綠燈、1ms 計時計時), LPUART (電腦通
 
 
 
-\- \*\*main.c\*\*: 主迴圈，實現有限狀態機 (FSM) 邏輯。
+\-本專案主要包含三個核心程式檔案：檔案名稱核心職責與分工main.c主要邏輯與狀態機控制中心• 定義全域變數與 FSM 狀態枚舉 (SystemState)。• 包含 main() 進入點與 while(1) 主迴圈。• 實作 FSM 狀態切換與硬體控制（PWM、LED、蜂鳴器）。• 處理非阻塞式 UART 接收與指令解析（如收到 "Safe"）。• 提供 EXTI 與 Timer 中斷的回呼函式（Callback）。stm32g4xx\_it.c底層中斷向量入口 (Interrupt Service Routines, ISR)• 存放 CPU 硬體中斷向量函式（如 TIM2\_IRQHandler()、EXTI2\_IRQHandler() 等）。• 當硬體觸發中斷時，CPU 第一時間進入此處，並呼叫 HAL 庫的通用處理函式（如 HAL\_TIM\_IRQHandler()）。• 最終將執行流程轉交給 main.c 中的 Callback 函式。main.h全域標頭檔與腳位巨集定義• 宣告全域周邊 Handle（如 hlpuart1、htim2）。• 定義硬體腳位標籤巨集（如 BTN1\_SENSOR\_Pin、LED\_RED\_Pin 等）。• 引入 STM32 HAL 庫核心標頭檔。二、 ISR 與主迴圈的分工架構 (Core Architecture)嵌入式系統設計的重要原則是：「中斷處理 (ISR) 越短越好，耗時任務交給主迴圈 (while(1))」。\[ 硬體事件觸發 ] (按鍵按下 / 1ms 定時器溢位)
+
+&#x20;      │
+
+&#x20;      ▼
+
+\[ ISR 中斷服務函式 ] (stm32g4xx\_it.c / HAL Callback)
+
+&#x20;      │
+
+&#x20;      ├─► 僅執行：快速防抖 / 累加計數器 / 設定 Flag 標籤
+
+&#x20;      │
+
+&#x20;      ▼
+
+\[ 主迴圈 while(1) ] (main.c)
+
+&#x20;      │
+
+&#x20;      └─► 執行：UART 字串發送 / 狀態機(FSM)切換 / PWM 與 GPIO 輸出控制
+
+1\. 中斷服務函式 (ISR / Callbacks) 的分工ISR 的職責是即時響應硬體事件，絕不執行阻塞（如 HAL\_Delay）或耗時動作（如 UART HAL\_UART\_Transmit）：按鈕外部中斷 (HAL\_GPIO\_EXTI\_Callback)：動作：使用 HAL\_GetTick() 進行 >200ms 軟體去彈跳。分工：確認為有效按壓後，僅更新 currentState（如切換至 STATE\_2 或 STATE\_3）與重置計數器，隨即退出中斷。定時器中斷 (HAL\_TIM\_PeriodElapsedCallback)：動作：每 1ms 觸發一次。分工：累加 timer\_500ms\_counter，滿 500ms 時僅切換 buzzer\_led\_toggle 旗標與控制 GPIO Toggle。累加 timer\_1ms\_counter，滿 1000ms 時將 countdownSeconds 扣減。當需要發送串口倒數訊息時，僅將 uart\_send\_flag 設為 1，不直接在中斷內呼叫 UART 發送。2. 主迴圈 (main() 的 while(1)) 的分工主迴圈負責系統狀態輪詢、指令解析與耗時/通訊任務：非阻塞 UART 接收：呼叫 HAL\_UART\_Receive(\&hlpuart1, \&rx\_byte, 1, 0)（Timeout = 0）。當收到 \\r 或 \\n 時解析字串，若收到 "Safe" 則將 currentState 切回 STATE\_1。安全 UART 訊息發送：輪詢檢查 uart\_send\_flag。若為 1，則在主迴圈中使用 sprintf 格式化字串並透過 UART\_SendString 阻塞式發送倒數訊息。FSM 狀態機與硬體輸出：判定 if (currentState != lastState)。當狀態發生改變時，更新 lastState 並透過 switch-case 統一調配 PWM 佔空比（\_\_HAL\_TIM\_SET\_COMPARE）、LED 電位（HAL\_GPIO\_WritePin）以及發送狀態切換提示訊息。
 
 
 
-\- \*\*stm32g4xx\_it.c\*\*: 處理 EXTI (按鈕) 和 TIM (PWM/快閃) 中斷。
+\## 8. 實作照片
+
+<img src="./images/1.png" width="400">
+
+<img src="./images/2.png" width="400">
+
+<img src="./images/3.png" width="400">
 
 
 
-\- \*\*lpuart.c\*\*: 包含 LPUART 接收中斷處理程式，處理 'Safe' 解鎖指令。
 
-
-
-\- \*\*(模擬 cloud.c)\*\*: 如果有上傳邏輯。
 
