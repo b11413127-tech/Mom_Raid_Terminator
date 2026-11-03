@@ -1,4 +1,4 @@
-14:55:17 **** Incremental Build of configuration Debug for project Mom_Raid_Terminator ****
+16:01:51 **** Incremental Build of configuration Debug for project Mom_Raid_Terminator ****
 make -j16 all 
 arm-none-eabi-size  Mom_Raid_Terminator.elf 
    text	   data	    bss	    dec	    hex	filename
@@ -6,5 +6,5 @@ arm-none-eabi-size  Mom_Raid_Terminator.elf
 Finished building: default.size.stdout
  
 
-14:55:17 Build Finished. 0 errors, 0 warnings. (took 367ms)
+16:01:52 Build Finished. 0 errors, 0 warnings. (took 1s.272ms)
 

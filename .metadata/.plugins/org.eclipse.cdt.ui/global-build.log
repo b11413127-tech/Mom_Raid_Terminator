@@ -63,3 +63,10 @@ arm-none-eabi-size  Mom_Raid_Terminator.elf
   22744	     96	   2160	  25000	   61a8	Mom_Raid_Terminator.elf
 Finished building: default.size.stdout
  
+16:01:51 **** Incremental Build of configuration Debug for project Mom_Raid_Terminator ****
+make -j16 all 
+arm-none-eabi-size  Mom_Raid_Terminator.elf 
+   text	   data	    bss	    dec	    hex	filename
+  22744	     96	   2160	  25000	   61a8	Mom_Raid_Terminator.elf
+Finished building: default.size.stdout
+ 

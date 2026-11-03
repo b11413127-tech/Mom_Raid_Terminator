@@ -76,7 +76,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
     uint32_t current_tick = HAL_GetTick();
     if ((current_tick - last_exti_tick) < 200) {
-        return; // >200ms 防抖
+        return;
     }
     last_exti_tick = current_tick;
 
@@ -99,7 +99,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
     if (htim->Instance == TIM2) {
         if (currentState == STATE_2_COUNTDOWN) {
-            /* 500ms 閃爍與蜂鳴器 toggle */
+
             timer_500ms_counter++;
             if (timer_500ms_counter >= 500) {
                 timer_500ms_counter = 0;
@@ -108,14 +108,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
                 HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, buzzer_led_toggle ? GPIO_PIN_SET : GPIO_PIN_RESET);
             }
 
-            /* 1000ms 倒數計時 */
+
             timer_1ms_counter++;
             if (timer_1ms_counter >= 1000) {
                 timer_1ms_counter = 0;
                 if (countdownSeconds > 0) {
                     countdownSeconds--;
                     send_sec_val = countdownSeconds;
-                    uart_send_flag = 1; // 標記 flag，由主迴圈發送 UART 避免中斷阻塞
+                    uart_send_flag = 1;
                 }
                 if (countdownSeconds == 0) {
                     currentState = STATE_3_MID_LIGHT;
@@ -158,11 +158,11 @@ int main(void)
   MX_LPUART1_UART_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  /* 手動補上 TIM2 NVIC 中斷啟用 (防錯) */
+
   HAL_NVIC_SetPriority(TIM2_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(TIM2_IRQn);
 
-  /* 啟動定時器中斷與 PWM 輸出 */
+
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
   /* USER CODE END 2 */
@@ -171,7 +171,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      /* 1. 非阻塞 UART 接收處理 (Timeout 設為 0 防止開機卡死) */
+
       if (HAL_UART_Receive(&hlpuart1, &rx_byte, 1, 0) == HAL_OK) {
           if (rx_byte == '\r' || rx_byte == '\n') {
               rx_buffer[rx_index] = '\0';
@@ -186,12 +186,12 @@ int main(void)
               if (rx_index < sizeof(rx_buffer) - 1) {
                   rx_buffer[rx_index++] = (char)rx_byte;
               } else {
-                  rx_index = 0; // 溢位保護
+                  rx_index = 0;
               }
           }
       }
 
-      /* 2. 主迴圈安全發送倒數 UART 訊息 */
+
       if (uart_send_flag) {
           uart_send_flag = 0;
           char msg[32];
@@ -199,12 +199,12 @@ int main(void)
           UART_SendString(msg);
       }
 
-      /* 3. FSM 狀態機輸出更新 */
+
       if (currentState != lastState) {
           lastState = currentState;
           switch (currentState) {
               case STATE_1_LOW_LIGHT:
-                  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 100); // 10% 亮度
+                  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 100);
                   HAL_GPIO_WritePin(GPIOA, LED_RED_Pin, GPIO_PIN_RESET);
                   HAL_GPIO_WritePin(GPIOA, LED_YELLOW_Pin, GPIO_PIN_RESET);
                   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
@@ -212,14 +212,14 @@ int main(void)
                   break;
 
               case STATE_2_COUNTDOWN:
-                  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);   // 綠燈滅
+                  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
                   HAL_GPIO_WritePin(GPIOA, LED_RED_Pin, GPIO_PIN_SET);
                   HAL_GPIO_WritePin(GPIOA, LED_YELLOW_Pin, GPIO_PIN_RESET);
                   UART_SendString("[State 2] MOM RAID WARNING!...\r\n");
                   break;
 
               case STATE_3_MID_LIGHT:
-                  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);   // 綠燈滅
+                  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
                   HAL_GPIO_WritePin(GPIOA, LED_RED_Pin, GPIO_PIN_RESET);
                   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
                   HAL_GPIO_WritePin(GPIOA, LED_YELLOW_Pin, GPIO_PIN_SET);
